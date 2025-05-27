@@ -1,0 +1,46 @@
+name: Ping Cron URL Every Minute
+
+on:
+  schedule:
+    - cron: '* * * * *' # every minute
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping cron endpoint with retries and logging
+        run: |
+          echo "Pinging cron endpoint..."
+
+          max_retries=3
+          count=0
+          success=false
+
+          while [ $count -lt $max_retries ]; do
+            echo "Attempt $((count + 1))..."
+
+            response=$(curl -s -w "%{http_code}" -o response.txt "${{ secrets.CRON_URL }}" \
+              -H "x-cron-token: ${{ secrets.CRON_SECRET }}")
+
+            http_code=$(tail -n1 <<< "$response")
+            body=$(cat response.txt)
+
+            echo "HTTP Status: $http_code"
+            echo "Response Body:"
+            echo "$body"
+
+            if [[ "$http_code" == "200" ]]; then
+              success=true
+              break
+            else
+              echo "Failed (HTTP $http_code). Retrying in 5 seconds..."
+              sleep 5
+              ((count++))
+            fi
+          done
+
+          if [ "$success" = false ]; then
+            echo "::error ::Failed to ping cron endpoint after $max_retries attempts."
+            exit 1
+          fi
