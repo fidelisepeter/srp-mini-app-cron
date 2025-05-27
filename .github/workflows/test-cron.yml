@@ -2,11 +2,13 @@ name: Test Cron Job
 
 on:
   schedule:
-    - cron: '* * * * *'  # Every minute
+    - cron: '* * * * *'  # Runs every minute
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Echo current time
-        run: echo "Current UTC time: $(date -u)"
+        run: |
+          echo "This is a scheduled cron job"
+          date -u
